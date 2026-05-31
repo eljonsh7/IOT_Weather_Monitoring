@@ -1,0 +1,112 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: weather-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: weather-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  cassandra:
+    image: cassandra:4.0
+    container_name: weather-cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    environment:
+      - "MAX_HEAP_SIZE=512M"
+      - "HEAP_NEWSIZE=100M"
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces'"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+
+  setup-cassandra:
+    image: python:3.9-slim
+    container_name: weather-setup-cassandra
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    volumes:
+      - ./config:/config
+      - ./cassandra_setup:/setup_scripts
+    command: bash -c "pip install --no-cache-dir cassandra-driver && python /setup_scripts/setup_cassandra.py"
+
+  data-producer:
+    build: ./data_producer
+    container_name: weather-data-producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data_producer:/app
+      - ./config:/config
+
+  spark-processor:
+    build:
+      context: ./spark_processor
+      dockerfile: Dockerfile
+    container_name: weather-spark-processor
+    depends_on:
+      kafka:
+        condition: service_healthy
+      setup-cassandra:
+        condition: service_completed_successfully
+    volumes:
+      - ./spark_processor:/app
+      - ./config:/config
+
+  # One-shot: builds training history and trains the AI models with the SAME
+  # pinned library versions the dashboard uses (avoids cross-version pickle issues).
+  ai-trainer:
+    image: python:3.9-slim
+    container_name: weather-ai-trainer
+    working_dir: /ai_module
+    volumes:
+      - ./ai_module:/ai_module
+      - ./data_producer:/data_producer
+    command: bash -c "pip install --no-cache-dir -r requirements.txt && python generate_history.py && python train_models.py"
+
+  dashboard:
+    build: ./dashboard
+    container_name: weather-dashboard
+    ports:
+      # Host 5001 -> container 5000 (macOS AirPlay Receiver occupies 5000).
+      - "5001:5000"
+    depends_on:
+      setup-cassandra:
+        condition: service_completed_successfully
+      ai-trainer:
+        condition: service_completed_successfully
+    volumes:
+      - ./dashboard:/app
+      - ./config:/config
+      - ./ai_module:/ai_module
+
+volumes:
+  cassandra_data:

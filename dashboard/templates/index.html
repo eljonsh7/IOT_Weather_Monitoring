@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Monitoring — IoT Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🌦️ Weather Monitoring</h1>
+    <div class="controls">
+      <label for="station">Station</label>
+      <select id="station">
+        {% for s in stations %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+      <span id="status-dot" class="dot"></span>
+      <span id="status-text">connecting…</span>
+    </div>
+  </header>
+
+  <!-- Alerts banner -->
+  <div id="alerts-banner" class="alerts-banner hidden"></div>
+
+  <main>
+    <!-- Current conditions cards -->
+    <section class="cards" id="cards"></section>
+
+    <div class="grid">
+      <!-- AI insights -->
+      <section class="panel ai-panel">
+        <h2>AI Insights</h2>
+        <div id="ai-content">
+          <p class="muted">Loading…</p>
+        </div>
+      </section>
+
+      <!-- Station metadata -->
+      <section class="panel">
+        <h2>Station Metadata</h2>
+        <div id="metadata-content"><p class="muted">Loading…</p></div>
+      </section>
+    </div>
+
+    <!-- Charts -->
+    <section class="charts">
+      <div class="chart-box"><canvas id="chart-temperature"></canvas></div>
+      <div class="chart-box"><canvas id="chart-humidity"></canvas></div>
+      <div class="chart-box"><canvas id="chart-pressure"></canvas></div>
+      <div class="chart-box"><canvas id="chart-precipitation"></canvas></div>
+      <div class="chart-box"><canvas id="chart-wind_speed"></canvas></div>
+    </section>
+
+    <!-- Recent alerts list -->
+    <section class="panel">
+      <h2>Recent Alerts</h2>
+      <ul id="alerts-list"><li class="muted">None</li></ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>Kafka → Spark Streaming → Cassandra → Dashboard · live demo</span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
