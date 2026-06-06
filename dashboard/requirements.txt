@@ -2,7 +2,8 @@ Flask==2.2.5
 Werkzeug==2.2.3
 cassandra-driver==3.25.0
 configparser==5.2.0
-# Needed to load the local AI models from ai_module/predict.py
 scikit-learn==1.4.2
 numpy==1.26.4
 joblib==1.4.2
+matplotlib==3.8.4
+weasyprint==62.3

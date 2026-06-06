@@ -3,64 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Monitoring — IoT Dashboard</title>
+  <title>IoT Weather Monitoring — Kosovo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
   <header>
-    <h1>🌦️ Weather Monitoring</h1>
-    <div class="controls">
-      <label for="station">Station</label>
-      <select id="station">
-        {% for s in stations %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-      </select>
-      <span id="status-dot" class="dot"></span>
-      <span id="status-text">connecting…</span>
+    <div class="header-left">
+      <div class="logo">🌦️</div>
+      <div class="header-titles">
+        <h1>IoT Weather Monitoring</h1>
+        <span class="subtitle">Kosovo Weather Network · Real-time Pipeline</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="time-range-group">
+        <button class="range-btn active" data-hours="0.5">30m</button>
+        <button class="range-btn" data-hours="1">1h</button>
+        <button class="range-btn" data-hours="3">3h</button>
+        <button class="range-btn" data-hours="6">6h</button>
+      </div>
+      <div class="station-wrap">
+        <label for="station">Station</label>
+        <select id="station">
+          {% for s in stations %}
+          <option value="{{ s.id }}">{{ s.city }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button id="export-btn" class="export-btn" title="Download PDF report">
+        📥 Export PDF
+      </button>
+      <div class="live-indicator">
+        <span id="status-dot" class="dot"></span>
+        <span id="status-text">connecting…</span>
+      </div>
     </div>
   </header>
 
-  <!-- Alerts banner -->
+  <!-- Alert banner -->
   <div id="alerts-banner" class="alerts-banner hidden"></div>
 
   <main>
-    <!-- Current conditions cards -->
-    <section class="cards" id="cards"></section>
 
-    <div class="grid">
-      <!-- AI insights -->
+    <!-- Metric cards -->
+    <section class="cards" id="cards">
+      <div class="card skeleton"><div class="card-icon">🌡️</div><div class="card-label">Temperature</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon">💧</div><div class="card-label">Humidity</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon">🌐</div><div class="card-label">Pressure</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon">🌧️</div><div class="card-label">Precipitation</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon">💨</div><div class="card-label">Wind Speed</div><div class="card-value">—</div></div>
+    </section>
+
+    <!-- AI + Metadata row -->
+    <div class="info-grid">
       <section class="panel ai-panel">
-        <h2>AI Insights</h2>
-        <div id="ai-content">
-          <p class="muted">Loading…</p>
-        </div>
+        <h2>🤖 AI Insights</h2>
+        <div id="ai-content"><p class="muted">Loading…</p></div>
       </section>
-
-      <!-- Station metadata -->
-      <section class="panel">
-        <h2>Station Metadata</h2>
+      <section class="panel meta-panel">
+        <h2>📍 Station Metadata</h2>
         <div id="metadata-content"><p class="muted">Loading…</p></div>
       </section>
     </div>
 
-    <!-- Charts -->
-    <section class="charts">
+    <!-- Charts: 3 across, then 2 across -->
+    <div class="charts-top">
       <div class="chart-box"><canvas id="chart-temperature"></canvas></div>
       <div class="chart-box"><canvas id="chart-humidity"></canvas></div>
       <div class="chart-box"><canvas id="chart-pressure"></canvas></div>
+    </div>
+    <div class="charts-bottom">
       <div class="chart-box"><canvas id="chart-precipitation"></canvas></div>
       <div class="chart-box"><canvas id="chart-wind_speed"></canvas></div>
-    </section>
+    </div>
 
-    <!-- Recent alerts list -->
-    <section class="panel">
-      <h2>Recent Alerts</h2>
+    <!-- Recent alerts -->
+    <section class="panel alerts-panel">
+      <div class="alerts-header">
+        <h2>🚨 Recent Alerts</h2>
+        <div id="alert-counts"></div>
+      </div>
       <ul id="alerts-list"><li class="muted">None</li></ul>
     </section>
+
   </main>
 
   <footer>
-    <span>Kafka → Spark Streaming → Cassandra → Dashboard · live demo</span>
+    <div class="pipeline">
+      <span class="pipe-step">🟢 Simulator</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">🟢 Kafka</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">🟢 Spark Streaming</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">🟢 Cassandra</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">🟢 Dashboard</span>
+      <span class="pipe-arrow">·</span>
+      <span class="pipe-step">🤖 AI</span>
+    </div>
+    <div class="footer-sub">UP / FIEK · Internet of Things · 2026</div>
   </footer>
 
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
