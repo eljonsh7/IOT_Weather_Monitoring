@@ -5,6 +5,11 @@ FROM bitnamilegacy/spark:3.3.0
 WORKDIR /app
 COPY . .
 
+# Unbuffered Python stdout so our "Batch N: wrote X" prints reach docker logs
+# in real time — without this, line-buffering hides batch progress behind
+# pipes and debugging streaming becomes guesswork.
+ENV PYTHONUNBUFFERED=1
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # spark-submit pulls the Kafka source + Cassandra connector at launch.

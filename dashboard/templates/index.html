@@ -9,9 +9,82 @@
 </head>
 <body>
 
+  <!-- ── SVG icon sprite (Lucide-style, line, currentColor) ─── -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <!-- weather parameters -->
+      <symbol id="i-thermometer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+      </symbol>
+      <symbol id="i-droplet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      </symbol>
+      <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 14l4-4"/>
+        <path d="M3.34 19a10 10 0 1 1 17.32 0"/>
+      </symbol>
+      <symbol id="i-cloud-rain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 14v6M8 14v6M12 16v6M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>
+      </symbol>
+      <symbol id="i-wind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+      </symbol>
+
+      <!-- panels -->
+      <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4" width="16" height="16" rx="2"/>
+        <rect x="9" y="9" width="6" height="6"/>
+        <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>
+      </symbol>
+      <symbol id="i-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+      </symbol>
+
+      <!-- header / nav -->
+      <symbol id="i-cloud-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v2"/>
+        <path d="m4.93 4.93 1.41 1.41"/>
+        <path d="M20 12h2"/>
+        <path d="m19.07 4.93-1.41 1.41"/>
+        <path d="M15.95 12.65a4 4 0 0 0-5.95-4.12"/>
+        <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </symbol>
+
+      <!-- status / state -->
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </symbol>
+      <symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </symbol>
+      <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <header>
     <div class="header-left">
-      <div class="logo">🌦️</div>
+      <svg class="logo"><use href="#i-cloud-sun"/></svg>
       <div class="header-titles">
         <h1>IoT Weather Monitoring</h1>
         <span class="subtitle">Kosovo Weather Network · Real-time Pipeline</span>
@@ -33,7 +106,11 @@
         </select>
       </div>
       <button id="export-btn" class="export-btn" title="Download PDF report">
-        📥 Export PDF
+        <svg class="icon"><use href="#i-download"/></svg>
+        <span>Export PDF</span>
+      </button>
+      <button id="theme-toggle" class="theme-toggle" title="Toggle dark / light mode" aria-label="Toggle theme">
+        <svg class="icon"><use href="#i-sun"/></svg>
       </button>
       <div class="live-indicator">
         <span id="status-dot" class="dot"></span>
@@ -49,21 +126,21 @@
 
     <!-- Metric cards -->
     <section class="cards" id="cards">
-      <div class="card skeleton"><div class="card-icon">🌡️</div><div class="card-label">Temperature</div><div class="card-value">—</div></div>
-      <div class="card skeleton"><div class="card-icon">💧</div><div class="card-label">Humidity</div><div class="card-value">—</div></div>
-      <div class="card skeleton"><div class="card-icon">🌐</div><div class="card-label">Pressure</div><div class="card-value">—</div></div>
-      <div class="card skeleton"><div class="card-icon">🌧️</div><div class="card-label">Precipitation</div><div class="card-value">—</div></div>
-      <div class="card skeleton"><div class="card-icon">💨</div><div class="card-label">Wind Speed</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon" style="color:var(--temp-color)"><svg class="icon-lg"><use href="#i-thermometer"/></svg></div><div class="card-label">Temperature</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon" style="color:var(--hum-color)"><svg class="icon-lg"><use href="#i-droplet"/></svg></div><div class="card-label">Humidity</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon" style="color:var(--pres-color)"><svg class="icon-lg"><use href="#i-gauge"/></svg></div><div class="card-label">Pressure</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon" style="color:var(--rain-color)"><svg class="icon-lg"><use href="#i-cloud-rain"/></svg></div><div class="card-label">Precipitation</div><div class="card-value">—</div></div>
+      <div class="card skeleton"><div class="card-icon" style="color:var(--wind-color)"><svg class="icon-lg"><use href="#i-wind"/></svg></div><div class="card-label">Wind Speed</div><div class="card-value">—</div></div>
     </section>
 
     <!-- AI + Metadata row -->
     <div class="info-grid">
       <section class="panel ai-panel">
-        <h2>🤖 AI Insights</h2>
+        <h2><svg class="icon"><use href="#i-cpu"/></svg> AI Insights</h2>
         <div id="ai-content"><p class="muted">Loading…</p></div>
       </section>
       <section class="panel meta-panel">
-        <h2>📍 Station Metadata</h2>
+        <h2><svg class="icon"><use href="#i-map-pin"/></svg> Station Metadata</h2>
         <div id="metadata-content"><p class="muted">Loading…</p></div>
       </section>
     </div>
@@ -82,7 +159,7 @@
     <!-- Recent alerts -->
     <section class="panel alerts-panel">
       <div class="alerts-header">
-        <h2>🚨 Recent Alerts</h2>
+        <h2><svg class="icon"><use href="#i-bell"/></svg> Recent Alerts</h2>
         <div id="alert-counts"></div>
       </div>
       <ul id="alerts-list"><li class="muted">None</li></ul>
@@ -92,17 +169,17 @@
 
   <footer>
     <div class="pipeline">
-      <span class="pipe-step">🟢 Simulator</span>
+      <span class="pipe-step"><span class="pipe-dot"></span> Simulator</span>
       <span class="pipe-arrow">→</span>
-      <span class="pipe-step">🟢 Kafka</span>
+      <span class="pipe-step"><span class="pipe-dot"></span> Kafka</span>
       <span class="pipe-arrow">→</span>
-      <span class="pipe-step">🟢 Spark Streaming</span>
+      <span class="pipe-step"><span class="pipe-dot"></span> Spark Streaming</span>
       <span class="pipe-arrow">→</span>
-      <span class="pipe-step">🟢 Cassandra</span>
+      <span class="pipe-step"><span class="pipe-dot"></span> Cassandra</span>
       <span class="pipe-arrow">→</span>
-      <span class="pipe-step">🟢 Dashboard</span>
+      <span class="pipe-step"><span class="pipe-dot"></span> Dashboard</span>
       <span class="pipe-arrow">·</span>
-      <span class="pipe-step">🤖 AI</span>
+      <span class="pipe-step"><svg class="icon-sm"><use href="#i-cpu"/></svg> AI</span>
     </div>
     <div class="footer-sub">UP / FIEK · Internet of Things · 2026</div>
   </footer>

@@ -26,6 +26,10 @@ except Exception as e:
     ai = None
 
 app = Flask(__name__)
+# Auto-reload templates so edits to index.html / report.html appear after a
+# page refresh, without restarting the container.
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
 CONFIG_PATH = "/config/project_config.ini"
 
 PARAM_META = {
@@ -143,10 +147,14 @@ def api_data(station_id):
 
     if hours:
         end_t = datetime.now(timezone.utc)
-        start_t = end_t - timedelta(hours=float(hours))
+        h = float(hours)
+        start_t = end_t - timedelta(hours=h)
+        # Producer emits ~0.5 reading/s per station; scale the LIMIT with the
+        # window so a "6h" view doesn't silently get truncated at 5000 rows.
+        cass_limit = max(2000, int(h * 2200))
         rows = list(session.execute(
-            f"SELECT * FROM {CASS['raw_data_table']} WHERE station_id=%s AND ts >= %s AND ts <= %s LIMIT 5000",
-            [station_id, start_t, end_t]
+            f"SELECT * FROM {CASS['raw_data_table']} WHERE station_id=%s AND ts >= %s AND ts <= %s LIMIT %s",
+            [station_id, start_t, end_t, cass_limit]
         ))
     else:
         rows = list(session.execute(
@@ -288,10 +296,12 @@ def export_pdf(station_id):
     # --- Raw readings for time range ---
     end_t   = datetime.now(timezone.utc)
     start_t = end_t - timedelta(hours=hours)
+    # Scale the LIMIT with the window (see /api/data); covers up to ~6h fully.
+    pdf_limit = max(5000, int(hours * 2200))
     raw_rows = list(session.execute(
         f"SELECT * FROM {CASS['raw_data_table']} "
-        f"WHERE station_id=%s AND ts >= %s AND ts <= %s LIMIT 10000",
-        [station_id, start_t, end_t]
+        f"WHERE station_id=%s AND ts >= %s AND ts <= %s LIMIT %s",
+        [station_id, start_t, end_t, pdf_limit]
     ))
     raw_rows.reverse()
 

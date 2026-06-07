@@ -373,7 +373,12 @@
     </div>
     <div class="info-card">
       <div class="info-label">Report Period</div>
-      <div class="info-value">Last {{ hours|int }} hour{% if hours != 1 %}s{% endif %}</div>
+      <div class="info-value">
+        {% if hours < 1 %}Last {{ (hours * 60)|int }} minutes
+        {% elif hours == 1 %}Last 1 hour
+        {% else %}Last {{ hours|int }} hours
+        {% endif %}
+      </div>
     </div>
   </div>
 

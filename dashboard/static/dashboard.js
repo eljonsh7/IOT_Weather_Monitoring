@@ -2,25 +2,50 @@
 
 const REFRESH_MS = 4000;
 
+// All inline icons reference symbols defined in the SVG sprite at the top of
+// index.html. We use <use href="#id"/>; CSS handles size and color.
 const PARAMS = [
-  { key: "temperature",   label: "Temperature",   unit: "°C",   icon: "🌡️", color: "#f87171" },
-  { key: "humidity",      label: "Humidity",      unit: "%",    icon: "💧", color: "#38bdf8" },
-  { key: "pressure",      label: "Pressure",      unit: "hPa",  icon: "🌐", color: "#a78bfa" },
-  { key: "precipitation", label: "Precipitation", unit: "mm/h", icon: "🌧️", color: "#34d399" },
-  { key: "wind_speed",    label: "Wind Speed",    unit: "m/s",  icon: "💨", color: "#fbbf24" },
+  { key: "temperature",   label: "Temperature",   unit: "°C",   icon: "i-thermometer", color: "#f87171" },
+  { key: "humidity",      label: "Humidity",      unit: "%",    icon: "i-droplet",     color: "#38bdf8" },
+  { key: "pressure",      label: "Pressure",      unit: "hPa",  icon: "i-gauge",       color: "#a78bfa" },
+  { key: "precipitation", label: "Precipitation", unit: "mm/h", icon: "i-cloud-rain",  color: "#34d399" },
+  { key: "wind_speed",    label: "Wind Speed",    unit: "m/s",  icon: "i-wind",        color: "#fbbf24" },
 ];
 
 const charts       = {};
 let currentStation = null;
-let currentHours   = 1;
+let currentHours   = 0.5;
 let pollTimer      = null;
 let prevValues     = {};
 
 function $(id) { return document.getElementById(id); }
 
+/** Tiny helper: returns SVG markup that references a sprite symbol. */
+function icon(id, cls = "icon") {
+  return `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+}
+
+/** Read a CSS custom property value from :root (for Chart.js theming). */
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 // ── Charts ────────────────────────────────────────────────
 
+function chartThemeOptions() {
+  return {
+    tickColor: cssVar("--muted") || "#64748b",
+    gridColor: cssVar("--chart-grid") || "#253047",
+    legendColor: cssVar("--muted") || "#64748b",
+    tooltipBg: cssVar("--panel") || "#1e293b",
+    tooltipBorder: cssVar("--border") || "#2d3f58",
+    tooltipTitle: cssVar("--muted") || "#94a3b8",
+    tooltipBody: cssVar("--text") || "#e2e8f0",
+  };
+}
+
 function initCharts() {
+  const t = chartThemeOptions();
   for (const p of PARAMS) {
     const ctx = $("chart-" + p.key);
     charts[p.key] = new Chart(ctx, {
@@ -43,13 +68,13 @@ function initCharts() {
         maintainAspectRatio: false,
         animation: false,
         plugins: {
-          legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+          legend: { labels: { color: t.legendColor, font: { size: 11 } } },
           tooltip: {
-            backgroundColor: "#1e293b",
-            borderColor: "#2d3f58",
+            backgroundColor: t.tooltipBg,
+            borderColor:     t.tooltipBorder,
             borderWidth: 1,
-            titleColor: "#94a3b8",
-            bodyColor: "#e2e8f0",
+            titleColor:  t.tooltipTitle,
+            bodyColor:   t.tooltipBody,
             callbacks: {
               label: ctx => `${ctx.parsed.y?.toFixed(2)} ${p.unit}`,
             },
@@ -57,16 +82,34 @@ function initCharts() {
         },
         scales: {
           x: {
-            ticks: { color: "#64748b", maxTicksLimit: 6, font: { size: 10 } },
-            grid:  { color: "#1e293b" },
+            ticks: { color: t.tickColor, maxTicksLimit: 6, font: { size: 10 } },
+            grid:  { color: t.gridColor },
           },
           y: {
-            ticks: { color: "#64748b", font: { size: 10 } },
-            grid:  { color: "#253047" },
+            ticks: { color: t.tickColor, font: { size: 10 } },
+            grid:  { color: t.gridColor },
           },
         },
       },
     });
+  }
+}
+
+function updateChartTheme() {
+  const t = chartThemeOptions();
+  for (const p of PARAMS) {
+    const c = charts[p.key];
+    if (!c) continue;
+    c.options.plugins.legend.labels.color = t.legendColor;
+    c.options.plugins.tooltip.backgroundColor = t.tooltipBg;
+    c.options.plugins.tooltip.borderColor     = t.tooltipBorder;
+    c.options.plugins.tooltip.titleColor      = t.tooltipTitle;
+    c.options.plugins.tooltip.bodyColor       = t.tooltipBody;
+    c.options.scales.x.ticks.color = t.tickColor;
+    c.options.scales.x.grid.color  = t.gridColor;
+    c.options.scales.y.ticks.color = t.tickColor;
+    c.options.scales.y.grid.color  = t.gridColor;
+    c.update("none");
   }
 }
 
@@ -116,7 +159,7 @@ function renderCards(latest, alerts) {
     const div = document.createElement("div");
     div.className = `card${sev ? " " + sev : ""}`;
     div.innerHTML = `
-      <div class="card-icon">${p.icon}</div>
+      <div class="card-icon" style="color:${p.color}">${icon(p.icon, "icon-lg")}</div>
       <div class="card-label">${p.label}</div>
       <div class="card-value">${v != null ? v.toFixed(1) : "—"}<span class="card-unit">${p.unit}</span></div>
       ${arrow ? `<div class="card-trend ${cls}">${arrow}</div>` : ""}
@@ -138,10 +181,14 @@ function renderInsights(ins) {
   const anom = ins.anomaly  || { is_anomaly: false };
   const forecast = ins.forecast_next_temp;
 
+  const anomBadge = anom.is_anomaly
+    ? `<span class="badge anomaly">${icon("i-alert-triangle", "icon-sm")} ${anom.reason || "anomaly"}</span>`
+    : `<span class="badge clean">${icon("i-check", "icon-sm")} clean</span>`;
+
   el.innerHTML = `
     <div class="ai-row">
       <span>Forecast (next temp)</span>
-      <strong style="color:#f87171">${forecast != null ? forecast.toFixed(1) + " °C" : "—"}</strong>
+      <strong style="color: var(--temp-color)">${forecast != null ? forecast.toFixed(1) + " °C" : "—"}</strong>
     </div>
     <div class="ai-row">
       <span>Weather Condition</span>
@@ -149,9 +196,7 @@ function renderInsights(ins) {
     </div>
     <div class="ai-row">
       <span>Anomaly Detection</span>
-      <span class="badge ${anom.is_anomaly ? "anomaly" : "clean"}">
-        ${anom.is_anomaly ? "⚠ " + (anom.reason || "anomaly") : "✓ clean"}
-      </span>
+      ${anomBadge}
     </div>
   `;
 }
@@ -191,17 +236,17 @@ function renderAlerts(alerts) {
   const nCrit = alerts.filter(a => a.severity === "critical").length;
   const nWarn = alerts.filter(a => a.severity === "warning").length;
   counts.innerHTML = [
-    nCrit ? `<span class="count-badge critical">⚡ ${nCrit} critical</span>` : "",
-    nWarn ? `<span class="count-badge warning">⚠ ${nWarn} warning</span>`   : "",
+    nCrit ? `<span class="count-badge critical">${icon("i-zap", "icon-sm")} ${nCrit} critical</span>` : "",
+    nWarn ? `<span class="count-badge warning">${icon("i-alert-triangle", "icon-sm")} ${nWarn} warning</span>` : "",
   ].join("");
 
   // Banner: most recent within 2 minutes
   const newest = alerts[0];
   const ageMs  = Date.now() - new Date(newest.timestamp).getTime();
   if (ageMs < 120000) {
-    const icon = newest.severity === "critical" ? "⚡" : "⚠️";
-    banner.textContent = `${icon}  ${newest.severity.toUpperCase()} · ${newest.message}`;
-    banner.className   = `alerts-banner ${newest.severity}`;
+    const iconId = newest.severity === "critical" ? "i-zap" : "i-alert-triangle";
+    banner.innerHTML = `${icon(iconId)} <strong>${newest.severity.toUpperCase()}</strong> · ${newest.message}`;
+    banner.className = `alerts-banner ${newest.severity}`;
   } else {
     banner.className = "alerts-banner hidden";
   }
@@ -236,10 +281,9 @@ function setStatus(live) {
 
 async function refresh() {
   const station = currentStation;
-  const hours   = currentHours;
   try {
     const [rows, insights, alerts] = await Promise.all([
-      getJSON(`/api/data/${station}?hours=${hours}`),
+      getJSON(`/api/data/${station}?hours=${currentHours}`),
       getJSON(`/api/insights/${station}`),
       getJSON(`/api/alerts/${station}?limit=30`),
     ]);
@@ -286,7 +330,8 @@ function setTimeRange(hours) {
 function exportPDF() {
   const url = `/api/export/pdf/${currentStation}?hours=${currentHours}`;
   const btn = $("export-btn");
-  btn.textContent = "⏳ Generating…";
+  const original = btn.innerHTML;
+  btn.innerHTML = `<span>Generating…</span>`;
   btn.disabled = true;
 
   fetch(url)
@@ -303,14 +348,43 @@ function exportPDF() {
     })
     .catch(err => { console.error(err); alert("PDF export failed. See console."); })
     .finally(() => {
-      btn.textContent = "📥 Export PDF";
+      btn.innerHTML = original;
       btn.disabled = false;
     });
+}
+
+// ── Theme (dark / light) ──────────────────────────────────
+
+const THEME_KEY = "weather-theme";
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+  // Toggle button shows the OPPOSITE icon — i.e. the mode you can switch to.
+  const btn = $("theme-toggle");
+  if (btn) btn.innerHTML = theme === "dark" ? icon("i-sun") : icon("i-moon");
+  updateChartTheme();
+}
+
+function initTheme() {
+  // URL ?theme=light|dark wins (handy for shared links + headless screenshots),
+  // then localStorage preference, then default to dark.
+  const fromUrl = new URLSearchParams(location.search).get("theme");
+  let saved = "dark";
+  try { saved = localStorage.getItem(THEME_KEY) || "dark"; } catch (_) {}
+  const theme = (fromUrl === "light" || fromUrl === "dark") ? fromUrl : saved;
+  applyTheme(theme);
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(cur === "dark" ? "light" : "dark");
 }
 
 // ── Boot ──────────────────────────────────────────────────
 
 function start() {
+  initTheme();      // before initCharts so first chart paint uses correct colors
   initCharts();
 
   const select = $("station");
@@ -323,6 +397,7 @@ function start() {
   });
 
   $("export-btn").addEventListener("click", exportPDF);
+  $("theme-toggle").addEventListener("click", toggleTheme);
 
   loadStation(currentStation);
   pollTimer = setInterval(refresh, REFRESH_MS);
