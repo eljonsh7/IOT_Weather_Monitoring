@@ -42,18 +42,21 @@ and injected sensor anomalies). Station altitude is recorded in metadata.
 | Folder | Role |
 |---|---|
 | `data_producer/` | Realistic weather simulator → Kafka producer |
-| `spark_processor/` | Spark Structured Streaming: raw + windowed aggregates + alerting |
-| `cassandra_setup/` | Creates keyspace + 4 tables, seeds station metadata |
+| `spark_processor/` | Spark Structured Streaming: validation + raw + windowed aggregates + alerting |
+| `alerts_consumer/` | Second independent Kafka consumer: routes alerts by severity (notification service) |
+| `cassandra_setup/` | Creates keyspace + 5 tables, seeds station metadata |
 | `ai_module/` | Local models: temperature forecast, anomaly detection, condition classification |
-| `dashboard/` | Flask + Chart.js live UI (charts, alerts banner, AI panel, metadata) |
+| `dashboard/` | Flask + Chart.js live UI (charts, aggregated-trends panel, alerts banner, AI panel, metadata) |
 | `performance_analysis/` | Benchmarks the real pipeline + optimization report |
-| `config/project_config.ini` | Single shared config for every service |
+| `tests/` | pytest suite (15 tests) for the simulator physics and alert/threshold logic |
+| `config/project_config.ini` | Single shared config for every service (incl. `[validation]` bounds) |
 
 ## Cassandra schema (`weather_monitoring`)
 - `raw_weather_data` — every reading (PK: station_id, ts)
 - `aggregated_weather` — sliding-window aggregates
 - `station_metadata` — sensor/station metadata (seeded)
-- `weather_alerts` — threshold-breach alerts
+- `weather_alerts` — threshold-breach alerts (written by Spark)
+- `alert_notifications` — audit trail of alerts handled by the consumer (dispatch/log)
 
 ## Prerequisites
 - [Docker](https://www.docker.com/get-started) + Docker Compose
@@ -101,10 +104,21 @@ python benchmark_pipeline.py   # results/*.csv + optimization_report.md
 python visualization.py        # results/*.png
 ```
 
+## Tests
+```bash
+pip install pytest
+PYTHONPATH=data_producer pytest tests/ -v   # 15 tests: simulator + thresholds
+```
+
+## Watch the second consumer
+```bash
+docker-compose logs -f alerts-consumer   # alerts routed by severity (critical → dispatch)
+```
+
 ## Stop
 ```bash
 docker-compose down       # stop containers
-docker-compose down -v    # also wipe Cassandra data
+docker-compose down -v    # also wipe Cassandra data + Spark checkpoints
 ```
 
 ## Advanced components (exam-exemption)
@@ -113,10 +127,19 @@ docker-compose down -v    # also wipe Cassandra data
    range checks), and a **condition classifier** (stable / storm / extreme).
    Trained locally on a year of synthetic history — no external API.
 2. **Alerting** — Spark evaluates config-driven thresholds in real time and
-   writes alerts to Cassandra and a Kafka topic; the dashboard shows them live.
+   writes alerts to Cassandra and a Kafka topic; a second independent consumer
+   (`alerts_consumer/`) subscribes to that topic and routes by severity; the
+   dashboard shows alerts live.
 3. **Performance analysis** — `performance_analysis/` benchmarks Kafka
    throughput, Cassandra read/write latency, and end-to-end latency, and
-   demonstrates a prepared-statement optimization.
+   demonstrates a concurrent-write optimization (~29× over sequential).
+
+## Data quality (medallion pattern)
+Spark validates every reading against physical-plausibility bounds
+(`[validation]` in the config). Raw storage keeps everything (bronze/audit);
+the windowed aggregates are computed **only on validated data** (silver) so a
+faulted sensor reading can't skew the averages. Streaming checkpoints persist on
+a Docker volume so offsets/state survive restarts.
 
 ## Notes
 - Thresholds live in `config/project_config.ini` under `[thresholds]` and are

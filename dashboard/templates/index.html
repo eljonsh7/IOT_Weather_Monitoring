@@ -156,6 +156,29 @@
       <div class="chart-box"><canvas id="chart-wind_speed"></canvas></div>
     </div>
 
+    <!-- Spark windowed aggregates (5-min sliding window) -->
+    <section class="panel agg-panel">
+      <div class="alerts-header">
+        <h2>📊 Aggregated Trends <span class="agg-sub">Spark 5-min sliding window</span></h2>
+      </div>
+      <div class="agg-table-wrap">
+        <table class="agg-table">
+          <thead>
+            <tr>
+              <th>Window (end)</th>
+              <th>Avg Temp</th>
+              <th>Avg Humidity</th>
+              <th>Avg Pressure</th>
+              <th>Total Precip</th>
+              <th>Max Wind</th>
+              <th>Readings</th>
+            </tr>
+          </thead>
+          <tbody id="agg-body"><tr><td colspan="7" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- Recent alerts -->
     <section class="panel alerts-panel">
       <div class="alerts-header">

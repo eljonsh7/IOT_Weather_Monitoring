@@ -460,6 +460,48 @@ main {
 [data-theme="dark"] .count-badge.critical { color: #fca5a5; }
 [data-theme="dark"] .count-badge.warning  { color: #fde68a; }
 
+/* ── Aggregates table ────────────────────────────────────── */
+
+.agg-sub {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: .02em;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.agg-table-wrap { overflow-x: auto; }
+
+.agg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+.agg-table thead th {
+  text-align: left;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.agg-table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.agg-table tbody tr:last-child td { border-bottom: none; }
+.agg-table tbody tr:hover { background: var(--panel2); }
+.agg-table tbody td:first-child { color: var(--muted); }
+
 #alerts-list {
   list-style: none;
   max-height: 220px;

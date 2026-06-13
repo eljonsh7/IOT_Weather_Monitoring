@@ -3,6 +3,22 @@
 phase1.pdf
 requirements.pdf
 
+# Internal-only analysis of another group's project — DO NOT publish/share
+docs/REFERENCE_ANALYSIS.md
+
+# Local pytest cache
+.pytest_cache/
+
+# Claude Code local session/settings — not part of the project
+.claude/
+
+# LaTeX build artifacts (if compiled locally)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.synctex.gz
+
 # IDE
 .idea
 

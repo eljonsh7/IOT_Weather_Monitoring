@@ -127,6 +127,19 @@ def main():
             ) WITH CLUSTERING ORDER BY (ts DESC, parameter ASC)
         """)
 
+        print("Creating table: alert_notifications")
+        session.execute(f"""
+            CREATE TABLE IF NOT EXISTS {cc.get('notifications_table', 'alert_notifications')} (
+                station_id TEXT,
+                notified_at TIMESTAMP,
+                parameter TEXT,
+                severity TEXT,
+                channel TEXT,
+                message TEXT,
+                PRIMARY KEY (station_id, notified_at, parameter)
+            ) WITH CLUSTERING ORDER BY (notified_at DESC, parameter ASC)
+        """)
+
         # --- Seed station metadata (the reference repo omitted this table) ---
         print("Seeding station metadata...")
         sensors = ["DHT22", "BMP280", "RainSensor", "Anemometer"]

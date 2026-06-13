@@ -35,6 +35,26 @@ def parse_threshold(raw):
     return tuple(None if p == "-" else float(p) for p in parts)
 
 
+def parse_bounds(raw):
+    """'min,max' -> (float, float) physical-plausibility bounds."""
+    lo, hi = [p.strip() for p in raw.split(",")]
+    return float(lo), float(hi)
+
+
+def valid_condition(bounds):
+    """Boolean Column: row is valid iff key fields are non-null and every
+    parameter is non-null and within its physical bounds.
+
+    This is the data-quality / validation+filtering stage required of the
+    Spark layer: it screens out corrupt or out-of-instrument-range readings
+    (e.g. a faulted sensor reporting 55 C) before they pollute the aggregates.
+    """
+    cond = col("station_id").isNotNull() & col("timestamp").isNotNull()
+    for param, (lo, hi) in bounds.items():
+        cond = cond & col(param).isNotNull() & (col(param) >= lo) & (col(param) <= hi)
+    return cond
+
+
 def build_alerts(batch_df, thresholds):
     """Return a DataFrame of alert rows for readings breaching thresholds.
 
@@ -94,6 +114,7 @@ def main():
     spark_cfg = config["spark"]
 
     thresholds = {p: parse_threshold(config["thresholds"][p]) for p in config["thresholds"]}
+    val_bounds = {p: parse_bounds(config["validation"][p]) for p in config["validation"]}
 
     spark = (SparkSession.builder
              .appName(spark_cfg["app_name"])
@@ -109,6 +130,9 @@ def main():
              .getOrCreate())
     spark.sparkContext.setLogLevel("ERROR")
     print("Spark session created.")
+
+    # Built after the session so the JVM gateway backing col() is available.
+    is_valid = valid_condition(val_bounds)
 
     schema = StructType([
         StructField("station_id", StringType(), True),
@@ -128,6 +152,17 @@ def main():
                 # Cap batch size so a sudden burst of messages can't create one
                 # huge micro-batch that stalls the stateful windowed query.
                 .option("maxOffsetsPerTrigger", "1000")
+                # --- Resilience to transient broker blips ---------------------
+                # A brief Kafka unavailability was hard-killing the query with
+                # "Timeout ... before the position for partition ... determined".
+                # Give the consumer generous timeouts and retries, and don't fail
+                # the whole stream on a recoverable data-loss/offset condition.
+                .option("kafka.request.timeout.ms", "120000")
+                .option("kafka.default.api.timeout.ms", "120000")
+                .option("kafka.session.timeout.ms", "30000")
+                .option("kafka.fetch.max.wait.ms", "1000")
+                .option("kafkaConsumer.pollTimeoutMs", "120000")
+                .option("failOnDataLoss", "false")
                 .load())
 
     parsed = (kafka_df
@@ -175,7 +210,12 @@ def main():
                  .option("topic", kafka_cfg["alerts_topic"])
                  .save())
             alerts.unpersist()
-            print(f"Batch {batch_id}: wrote {n} reading(s), {n_alerts} alert(s).")
+
+            # Data-quality metric: how many readings in this batch fail the
+            # physical-plausibility validation (corrupt / out-of-range sensors).
+            n_invalid = batch_df.where(~is_valid).count()
+            dq = f", {n_invalid} invalid (filtered from aggregates)" if n_invalid else ""
+            print(f"Batch {batch_id}: wrote {n} reading(s), {n_alerts} alert(s){dq}.")
         finally:
             batch_df.unpersist()
 
@@ -188,7 +228,10 @@ def main():
     print("Query A (raw + alerts) started.")
 
     # --- Query B: sliding-window aggregates -> Cassandra -----------------
+    # Aggregate ONLY the validated stream so a faulted sensor reading cannot
+    # skew the windowed averages (bronze raw keeps everything; silver = valid).
     agg = (parsed
+           .where(is_valid)
            .withWatermark("timestamp", spark_cfg["watermark"])
            .groupBy(
                window(col("timestamp"), spark_cfg["window_size"], spark_cfg["slide_interval"]).alias("w"),

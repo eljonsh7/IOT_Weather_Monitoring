@@ -279,13 +279,37 @@ function setStatus(live) {
 
 // ── Refresh ───────────────────────────────────────────────
 
+function renderAggregates(rows) {
+  const body = $("agg-body");
+  if (!rows || !rows.length) {
+    body.innerHTML = `<tr><td colspan="7" class="muted">No window aggregates yet (first 5-min window still filling).</td></tr>`;
+    return;
+  }
+  // Newest window first
+  const recent = rows.slice().reverse().slice(0, 8);
+  body.innerHTML = recent.map(w => {
+    const t = new Date(w.window_end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const f = (v, d = 1) => (v != null ? v.toFixed(d) : "—");
+    return `<tr>
+      <td>${t}</td>
+      <td>${f(w.avg_temperature)} °C</td>
+      <td>${f(w.avg_humidity)} %</td>
+      <td>${f(w.avg_pressure)} hPa</td>
+      <td>${f(w.total_precipitation)} mm</td>
+      <td>${f(w.max_wind_speed)} m/s</td>
+      <td>${w.reading_count}</td>
+    </tr>`;
+  }).join("");
+}
+
 async function refresh() {
   const station = currentStation;
   try {
-    const [rows, insights, alerts] = await Promise.all([
+    const [rows, insights, alerts, aggregates] = await Promise.all([
       getJSON(`/api/data/${station}?hours=${currentHours}`),
       getJSON(`/api/insights/${station}`),
       getJSON(`/api/alerts/${station}?limit=30`),
+      getJSON(`/api/aggregates/${station}?limit=12`),
     ]);
     if (station !== currentStation) return;
     if (rows.length) {
@@ -297,6 +321,7 @@ async function refresh() {
     }
     if (!insights.error) renderInsights(insights);
     renderAlerts(alerts);
+    if (!aggregates.error) renderAggregates(aggregates);
   } catch (e) {
     console.error(e);
     setStatus(false);

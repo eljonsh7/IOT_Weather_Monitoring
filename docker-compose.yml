@@ -2,6 +2,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: weather-zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -11,6 +12,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: weather-kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -33,6 +35,7 @@ services:
   cassandra:
     image: cassandra:4.0
     container_name: weather-cassandra
+    restart: unless-stopped
     ports:
       - "9042:9042"
     volumes:
@@ -60,6 +63,7 @@ services:
   data-producer:
     build: ./data_producer
     container_name: weather-data-producer
+    restart: unless-stopped
     depends_on:
       kafka:
         condition: service_healthy
@@ -67,11 +71,27 @@ services:
       - ./data_producer:/app
       - ./config:/config
 
+  # Independent consumer of the weather_alerts topic — the notification service.
+  # Demonstrates Kafka pub/sub with a second, separate consumer downstream of Spark.
+  alerts-consumer:
+    build: ./alerts_consumer
+    container_name: weather-alerts-consumer
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      setup-cassandra:
+        condition: service_completed_successfully
+    volumes:
+      - ./alerts_consumer:/app
+      - ./config:/config
+
   spark-processor:
     build:
       context: ./spark_processor
       dockerfile: Dockerfile
     container_name: weather-spark-processor
+    restart: unless-stopped
     depends_on:
       kafka:
         condition: service_healthy
@@ -95,6 +115,7 @@ services:
   dashboard:
     build: ./dashboard
     container_name: weather-dashboard
+    restart: unless-stopped
     ports:
       # Host 5001 -> container 5000 (macOS AirPlay Receiver occupies 5000).
       - "5001:5000"
