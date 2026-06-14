@@ -19,9 +19,14 @@ The project also implements the three advanced components:
         │
         ▼
  Apache Spark Streaming
-   ├─ Q1 raw        → Cassandra.raw_weather_data
-   ├─ Q2 windowed   → Cassandra.aggregated_weather   (5-min sliding window)
-   └─ Q3 alerts     → Cassandra.weather_alerts  (+ Kafka topic: weather_alerts)
+   ├─ Query A (foreachBatch) → Cassandra.raw_weather_data
+   │                         → Cassandra.weather_alerts
+   │                         → Kafka topic: weather_alerts
+   │                                │
+   │                                ▼
+   │                         alerts_consumer (severity routing + audit trail)
+   │                                → Cassandra.alert_notifications
+   └─ Query B (windowed)     → Cassandra.aggregated_weather (5-min sliding window)
         │
         ▼
  Apache Cassandra  (keyspace: weather_monitoring)
@@ -46,14 +51,14 @@ and injected sensor anomalies). Station altitude is recorded in metadata.
 | `alerts_consumer/` | Second independent Kafka consumer: routes alerts by severity (notification service) |
 | `cassandra_setup/` | Creates keyspace + 5 tables, seeds station metadata |
 | `ai_module/` | Local models: temperature forecast, anomaly detection, condition classification |
-| `dashboard/` | Flask + Chart.js live UI (charts, aggregated-trends panel, alerts banner, AI panel, metadata) |
+| `dashboard/` | Flask + Chart.js live UI (charts, aggregated-trends panel, alerts banner, AI panel, metadata, dark/light theme, PDF export) |
 | `performance_analysis/` | Benchmarks the real pipeline + optimization report |
 | `tests/` | pytest suite (15 tests) for the simulator physics and alert/threshold logic |
 | `config/project_config.ini` | Single shared config for every service (incl. `[validation]` bounds) |
 
 ## Cassandra schema (`weather_monitoring`)
 - `raw_weather_data` — every reading (PK: station_id, ts)
-- `aggregated_weather` — sliding-window aggregates
+- `aggregated_weather` — Spark 5-minute sliding-window aggregates per station
 - `station_metadata` — sensor/station metadata (seeded)
 - `weather_alerts` — threshold-breach alerts (written by Spark)
 - `alert_notifications` — audit trail of alerts handled by the consumer (dispatch/log)
@@ -82,7 +87,7 @@ anomalies trigger the alerts banner and show up in the AI panel.
 ### Watch it work
 ```bash
 docker-compose logs -f data-producer    # readings being sent to Kafka
-docker-compose logs -f spark-processor   # 3 streaming queries, micro-batches
+docker-compose logs -f spark-processor   # 2 streaming queries, micro-batches
 ```
 
 Inspect the database:
@@ -132,7 +137,7 @@ docker-compose down -v    # also wipe Cassandra data + Spark checkpoints
    dashboard shows alerts live.
 3. **Performance analysis** — `performance_analysis/` benchmarks Kafka
    throughput, Cassandra read/write latency, and end-to-end latency, and
-   demonstrates a concurrent-write optimization (~29× over sequential).
+   demonstrates a concurrent-write optimization (28.9× over sequential).
 
 ## Data quality (medallion pattern)
 Spark validates every reading against physical-plausibility bounds
